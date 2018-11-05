@@ -2,13 +2,22 @@ package controllers;
 
 import connectors.BackendConnector;
 import forms.MessageInputForm;
+import models.MessageInput;
+import org.json.JSONException;
 import play.data.Form;
 import play.data.FormFactory;
+import play.data.validation.ValidationError;
 import play.mvc.Result;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import static play.mvc.Controller.flash;
+import static play.mvc.Controller.session;
+import static play.mvc.Results.badRequest;
 import static play.mvc.Results.ok;
 import play.Logger;
+
+import java.util.List;
 
 @Singleton
 public class MessageController {
@@ -21,25 +30,33 @@ public class MessageController {
         this.form = formFactory.form(MessageInputForm.class);
     }
 
-    public Result submitMessage() {
+    public Result submitMessage() throws JSONException {
 
         Logger.debug("submit message");
         final Form<MessageInputForm> boundForm = form.bindFromRequest();
 
         if (boundForm.hasErrors()) {
-            play.Logger.ALogger logger = play.Logger.of(getClass());
-            logger.error("errors = {}", boundForm.errors());
-            return ok(views.html.homepage.render(form));
+            String errorMsg = "";
+            java.util.Map<String, List<ValidationError>> errorsAll = boundForm.errors();
+            for (String field : errorsAll.keySet()) {
+                errorMsg += field + " ";
+                for (ValidationError error : errorsAll.get(field)) {
+                    errorMsg += error.message() + ", ";
+                }
+            }
+            flash("globalError", errorMsg);
+            return ok(views.html.homepage.render(boundForm, ""));
         } else {
             MessageInputForm data = boundForm.get();
-            BackendConnector.sendMessage(data.getMessage());
-            return ok(views.html.homepage.render(form));
+            String response = BackendConnector.sendMessage(new MessageInput(data.getMessage()));
+            return ok(views.html.homepage.render(form, response));
         }
     }
 
 
 
     public Result getHomepage() {
-        return ok(views.html.homepage.render(form));
+        session().clear();
+        return ok(views.html.homepage.render(form,""));
     }
 }

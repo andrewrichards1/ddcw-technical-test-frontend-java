@@ -1,20 +1,21 @@
 @import forms.MessageInputForm
-@(messageInputForm: Form[MessageInputForm])
 
+@(messageInputForm: Form[MessageInputForm], message: String)
 
 
 @main("Home") {
 <h1>Welcome to the Frontend!</h1>
 
-@* Global errors are not tied to any particular form field *@
-@if(messageInputForm.hasGlobalErrors) {
-@messageInputForm.globalErrors.asScala.map { error: play.data.validation.ValidationError =>
-<div>
-    @error.key: @error.message
-</div>
-}
+@if(message.nonEmpty) {
+<p>Response: @message</p>
 }
 
+@if(flash.get("globalError")) {
+<div style="background: red">
+    <h4>Error!</h4>
+    @flash.get("globalError")
+</div>
+}
 
 @helper.form(action = routes.MessageController.submitMessage) {
 <p>Enter your text: </p>
